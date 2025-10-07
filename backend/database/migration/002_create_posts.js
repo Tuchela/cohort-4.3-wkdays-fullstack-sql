@@ -5,9 +5,10 @@ async function createPostsTable() {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS posts (
         id SERIAL PRIMARY KEY,
+        post_id INTEGER NOT NULL,
         post_title VARCHAR(200) NOT NULL,
         post_desc TEXT NOT NULL,
-        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (post_id) REFERENCES users(id) ON DELETE CASCADE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
       `);
