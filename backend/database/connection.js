@@ -23,4 +23,4 @@ export const createConnectionToDB = async () => {
   }
 };
 
-export default createConnectionToDB
+export default createConnectionToDB;

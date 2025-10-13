@@ -8,7 +8,7 @@ async function createUsersTable() {
         first_name VARCHAR(100) NOT NULL,
         last_name VARCHAR(100) NOT NULL,
         email VARCHAR(100) UNIQUE NOT NULL,
-        password VARCHAR(50) NOT NULL,
+        password VARCHAR(250) NOT NULL,
         role VARCHAR(100) DEFAULT 'user',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
