@@ -10,6 +10,8 @@ async function createUsersTable() {
         email VARCHAR(100) UNIQUE NOT NULL,
         password VARCHAR(250) NOT NULL,
         role VARCHAR(100) DEFAULT 'user',
+        otp VARCHAR(225),
+        otp_expires BIGINT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
       `);
