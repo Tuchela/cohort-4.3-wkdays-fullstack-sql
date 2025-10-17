@@ -3,16 +3,22 @@ import {
   generateToken,
   hashPassword,
   verifyPassword,
+  hashOTP,
+  verifyOTP,
 } from "../utils/utilities.js";
 import {
   registerUser,
   findEmail,
   findIfEmailExist,
+  forgetPassword,
+  passwordReset,
+  allUsers,
+  singleUserById,
+  updateUsers,
+  deleteUserById,
 } from "../database/queries/sql.js";
 import nodemailer from "nodemailer";
 import crypto from "crypto";
-import bcrypt from "bcrypt";
-import { hashOTP, verifyOTP } from "../utils/utilities.js";
 // Fulll CRUD Application
 
 /**
@@ -106,10 +112,7 @@ export const forgotPassword = async (req, res) => {
     const otpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
     // Hash the OTP before storing
     const hashedOtp = hashOTP(otp);
-    await pool.query(
-      "UPDATE users SET otp = $1, otp_expires = $2 WHERE email = $3",
-      [hashedOtp, otpExpires, email]
-    );
+    await pool.query(forgetPassword, [hashedOtp, otpExpires, email]);
 
     // Send OTP via email (configure transporter)
     const transporter = nodemailer.createTransport({
@@ -126,7 +129,7 @@ export const forgotPassword = async (req, res) => {
       subject: "Password Reset OTP",
       text: `Your OTP is ${otp}. It will expire in 10 minutes.`,
     });
-    return res.status(200).json({ message: "OTP sent to email" });
+    return res.status(200).json({ message: "OTP sent to your email" });
   } catch (error) {
     return res.status(500).json({
       error: error.message,
@@ -141,7 +144,9 @@ export const resetPassword = async (req, res) => {
   try {
     const { email, otp, newPassword } = req.body;
     if (!email || !otp || !newPassword) {
-      return res.status(400).json({ message: "email, otp and newPassword required" });
+      return res
+        .status(400)
+        .json({ message: "email, otp and newPassword required" });
     }
 
     const { rows } = await pool.query(findIfEmailExist, [email]);
@@ -151,7 +156,11 @@ export const resetPassword = async (req, res) => {
     }
 
     // Check expiration
-    if (!user.otp || !user.otp_expires || Date.now() > Number(user.otp_expires)) {
+    if (
+      !user.otp ||
+      !user.otp_expires ||
+      Date.now() > Number(user.otp_expires)
+    ) {
       return res.status(400).json({ message: "OTP expired or not set" });
     }
 
@@ -163,10 +172,7 @@ export const resetPassword = async (req, res) => {
 
     // Hash new password and update, clear OTP fields
     const hashedpassword = hashPassword(newPassword);
-    await pool.query(
-      "UPDATE users SET password = $1, otp = NULL, otp_expires = NULL WHERE email = $2",
-      [hashedpassword, email]
-    );
+    await pool.query(passwordReset, [hashedpassword, email]);
 
     return res.status(200).json({ message: "Password reset successful" });
   } catch (error) {
@@ -175,5 +181,86 @@ export const resetPassword = async (req, res) => {
 };
 
 /**
- * Verify otp
+ * get all user
  */
+
+export const getAllUsers = async (req, res) => {
+  try {
+    const { rows } = await pool.query(allUsers);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "No users found" });
+    }
+
+    res.status(200).json({
+      message: "Users fetched successfully",
+      users: rows,
+    });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * get single user
+ */
+
+export const getSingleUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const { rows } = await pool.query(singleUserById, [id]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    return res.status(200).json(rows[0]);
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * Update User
+ */
+
+export const updateUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { first_name, last_name, email, password } = req.body;
+    const hashedpassword = hashPassword(password);
+    const { rows } = await pool.query(updateUsers, [
+      first_name,
+      last_name,
+      email,
+      hashedpassword,
+      id,
+    ]);
+
+    if (rows.length === 0) {
+      res.status(404).json({ message: "User not found" });
+    }
+
+    return res.status(200).json({
+      message: "User updated successfully",
+    });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+export const deleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { rows } = await pool.query(deleteUserById, [id]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    return res.status(200).json({ message: "User deleted successfully" });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};
