@@ -4,11 +4,13 @@ import {
   login,
   forgotPassword,
   resetPassword,
-  updateUser,
-  getSingleUser,
-  deleteUser,
-  getAllUsers
 } from "../controller/auth.controller.js";
+import {
+  getAllUsers,
+  getSingleUser,
+  updateUser,
+  deleteUser,
+} from "../controller/user.controller.js";
 
 const router = express.Router();
 

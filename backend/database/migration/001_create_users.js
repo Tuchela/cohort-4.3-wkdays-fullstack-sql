@@ -1,9 +1,8 @@
 import { pool } from "../connection.js";
 
-async function createUsersTable() {
-  try {
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS users (
+const usersTable = `
+      DROP TABLE IF EXISTS users CASCADE;
+       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
         first_name VARCHAR(100) NOT NULL,
         last_name VARCHAR(100) NOT NULL,
@@ -14,13 +13,18 @@ async function createUsersTable() {
         otp_expires BIGINT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
-      `);
+      `;
 
-    console.log("Users table created successfully.");
-    process.exit(0);
+async function createUserTable() {
+  try {
+    const create = await pool.query(usersTable);
+    console.log(
+      `users table ${create[0].command}PED and ${create[1].command}D`
+    );
+    console.log("User table created successfully");
   } catch (error) {
     console.error("User migration failed", error);
-    process.exit(1);
   }
 }
-createUsersTable();
+export default createUserTable;
+// createUserTable();

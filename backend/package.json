@@ -18,10 +18,8 @@
   "scripts": {
     "start": "node app.js",
     "dev": "node --watch app.js",
-    "migrate:user": "node database/migration/001_create_users.js",
-    "migrate:post": "node database/migration/002_create_posts.js",
-    "seed:user": "node database/seed/001_seed_users.js",
-    "seed:post": "node database/seed/002_seed_posts.js"
+    "migrate": "node database/migration/index.js",
+    "seed": "node database/migration/index.js"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

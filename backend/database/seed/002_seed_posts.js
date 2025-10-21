@@ -1,20 +1,19 @@
 import { pool } from "../connection.js";
 
-async function seedPostData() {
+async function seedUserData() {
   try {
     await pool.query(`
-      INSERT INTO posts (post_id, post_title, post_desc)
-       VALUES
-        (2, 'First Post', 'This is the description for the first post.'),
-        (1, 'Second Post', 'This is the description for the second post.'),
-        (3, 'Third Post', 'This is the description for the third post.'),
-        (4, 'Fourth Post', 'This is the description for the fourth post.')
+      INSERT INTO posts (post_owner_id, post_title, post_desc, post_comment)
+      VALUES 
+        (2, 'Learn PostgreSQL', 'This is first lessson on SQL databases', 'I enjoyed learn sql databse'),
+        (1, 'Learn Nodejs', 'This is first lessson on Nodejs class', 'I enjoyed learn Nodejs'),
+        (3, 'Learn React', 'This is first lessson on React Hook', 'I enjoyed learn React Hook'),
+        (4, 'Learn Mongodb', 'This is first lessson on mongodb', 'I enjoyed learn mongodb databse')
       `);
-    console.log("Post data seeded successfully.");
-    process.exit(0);
+    console.log("Posts data seeded successfully");
   } catch (error) {
-    console.error("Unable to seed post data", error);
-    process.exit(1);
+    console.error("Unable to seed posts data", error);
   }
 }
-seedPostData(); 
+export default seedUserData;
+// seedUserData();
