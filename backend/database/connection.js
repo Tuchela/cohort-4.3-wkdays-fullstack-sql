@@ -16,10 +16,10 @@ export const pool = new Pool({
 const createConnectionToDB = async () => {
   try {
     const client = await pool.connect();
-    console.log("Connected to the database");
+    console.log("Connected to the database successfully");
     return client;
   } catch (error) {
-    console.error("Error connecting to the database:", error);
+    console.error("Database connection failed", error);
     throw error;
   }
 };
