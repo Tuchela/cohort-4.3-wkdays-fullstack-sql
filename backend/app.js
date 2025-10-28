@@ -1,9 +1,9 @@
 import express from "express";
 import dotenv from "dotenv";
 import createConnectionToDB from "./database/connection.js";
+import cors from "cors";
 import authRoutes from "./routes/auth.route.js";
 import morgan from "morgan";
-import cors from "cors";
 
 dotenv.config();
 

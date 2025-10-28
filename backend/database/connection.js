@@ -7,16 +7,20 @@ const { Pool } = pg;
 
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: isProduction ? { rejectUnauthorized: false } : false,
+  ssl:
+    process.env.NODE_ENV === "production"
+      ? { rejectUnauthorized: false }
+      : false,
 });
 
-// create connection to db
-export const createConnectionToDB = async () => {
+const createConnectionToDB = async () => {
   try {
-    await pool.connect();
-    console.log("Connected to the database successfully.");
+    const client = await pool.connect();
+    console.log("Connected to the database");
+    return client;
   } catch (error) {
     console.error("Error connecting to the database:", error);
+    throw error;
   }
 };
 
