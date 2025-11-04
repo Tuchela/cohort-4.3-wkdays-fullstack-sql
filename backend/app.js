@@ -1,8 +1,8 @@
 import express from "express";
 import dotenv from "dotenv";
-import createConnectionToDB from "./database/connection.js";
+import createConnectionToDB from "../backend/database/connection.js";
 import cors from "cors";
-import authRoutes from "./routes/auth.route.js";
+import authRouter from "./routes/auth.route.js";
 import morgan from "morgan";
 
 dotenv.config();
@@ -27,7 +27,7 @@ app.get("/", (req, res) => {
 
 createConnectionToDB();
 
-app.use("/api/v1", authRoutes);
+app.use("/api/v1", authRouter);
 
 app.listen(port, (req, res) => {
   console.log(`Server is running on localhost: ${port}`);

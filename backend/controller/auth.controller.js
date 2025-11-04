@@ -15,7 +15,7 @@ import {
 } from "../database/queries/sql.js";
 import nodemailer from "nodemailer";
 import crypto from "crypto";
-// Fulll CRUD Application
+// Full CRUD Application
 
 /**
  * Register
@@ -112,10 +112,12 @@ export const forgotPassword = async (req, res) => {
 
     // Send OTP via email (configure transporter)
     const transporter = nodemailer.createTransport({
-      service: "Gmail",
+      host: process.env.SMTP_HOST,
+      port: process.env.SMTP_PORT,
+      secure: false, // use TLS
       auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
       },
     });
 
