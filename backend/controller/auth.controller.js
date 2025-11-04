@@ -112,17 +112,18 @@ export const forgotPassword = async (req, res) => {
 
     // Send OTP via email (configure transporter)
     const transporter = nodemailer.createTransport({
+      service: "Gmail",
       host: process.env.SMTP_HOST,
       port: process.env.SMTP_PORT,
-      secure: false, // use TLS
+      secure: process.env.SMTP_SECURE,
       auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
       },
     });
 
     await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+      from: process.env.SMTP_USER,
       to: email,
       subject: "Password Reset OTP",
       text: `Your OTP is ${otp}. It will expire in 10 minutes.`,
