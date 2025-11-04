@@ -111,23 +111,21 @@ export const forgotPassword = async (req, res) => {
     await pool.query(forgetPassword, [hashedOtp, otpExpires, email]);
 
     // Send OTP via email (configure transporter)
-    const transporter = nodemailer.createTransport({
-      service: "Gmail",
-      host: process.env.SMTP_HOST,
-      port: process.env.SMTP_PORT,
-      secure: process.env.SMTP_SECURE,
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
+   const transporter = nodemailer.createTransport({
+     service: "Gmail", // This automatically sets host/port
+     auth: {
+       user: process.env.EMAIL_USER, // Your Gmail address
+       pass: process.env.EMAIL_PASS, // Gmail App Password (NOT your regular password)
+     },
+   });
 
-    await transporter.sendMail({
-      from: process.env.SMTP_USER,
-      to: email,
-      subject: "Password Reset OTP",
-      text: `Your OTP is ${otp}. It will expire in 10 minutes.`,
-    });
+   await transporter.sendMail({
+     from: process.env.EMAIL_USER, // Should be same as auth user
+     to: email,
+     subject: "Password Reset OTP",
+     text: `Your OTP is ${otp}. It will expire in 10 minutes.`,
+     html: `<p>Your OTP is <strong>${otp}</strong>. It will expire in 10 minutes.</p>`,
+   });
     return res.status(200).json({ message: "OTP sent to your email" });
   } catch (error) {
     return res.status(500).json({
