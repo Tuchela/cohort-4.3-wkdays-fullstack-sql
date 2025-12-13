@@ -55,7 +55,16 @@ export const login = async (req, res) => {
     // find by email
     const { email } = req.body;
     const { rows } = await pool.query(findIfEmailExist, [email]);
+
+    // check if that email exist
+    if (!rows[0]) {
+      return res.status(401).json({
+        error: "Invalid user credentials, Either email or password incorrect",
+      });
+    }
+
     const { id, role, first_name } = rows[0];
+    
     // check if passwprd exist
     const checkIfPasswordMatch = verifyPassword(
       rows[0].password,
