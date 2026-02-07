@@ -7,7 +7,7 @@
   --bg: #fff;
   --text-color: #111111;
   font-family: Mulish;
-  padding: 0 !important;
+  padding:0 !important;
 }
 body {
   background-color: var(--bg);

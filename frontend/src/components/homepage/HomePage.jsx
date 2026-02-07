@@ -1,12 +1,11 @@
-// import { Navbar } from "../../components/index"; 
+// import { Navbar } from "../../components/index";
 
 const HomePage = () => {
   return (
     <>
       {/* <Navbar /> */}
-      <home />
+      <Home />
     </>
   );
 };
-
 export default HomePage;

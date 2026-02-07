@@ -18,8 +18,8 @@ div.authLinkContainer {
   align-items: center;
   gap: 0.6rem;
 }
-.authLink {
-  color: dodgerblue;
+.authLink{
+color: dodgerblue;
 }
 button {
   padding: 10px 15px;

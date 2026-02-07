@@ -1,0 +1,153 @@
+.dashboardWrapper {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  background-color: #f5f7fa;
+}
+.menu {
+  width: 260px;
+  background-color: #ffffff;
+  border-right: 1px solid #e0e0e0;
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  height: 100%;
+}
+.mainContent {
+  flex: 1;
+  padding: 40px;
+  background-color: #f5f7fa;
+  overflow-y: auto;
+}
+.list {
+  display: flex;
+  flex-direction: column;
+}
+.logo {
+  margin-bottom: 20px;
+  margin-top: 20px;
+  width: 120px;
+}
+.item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: #666;
+  font-weight: 500;
+  padding: 10px;
+  transition: 0.3s;
+}
+
+.item img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.item:hover {
+  background-color: #f4f7fe;
+  border-radius: 8px;
+}
+.support {
+  margin-top: 14px;
+  color: gray;
+}
+.supportTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: gray;
+  margin-bottom: 10px;
+  margin-left: 7px;
+}
+.accountSection {
+  margin-top: 210px;
+  padding-top: 20px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.userProfile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 15px;
+}
+
+.avatar {
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.userInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.userName {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.userEmail {
+  font-size: 11px;
+  color: #999;
+}
+
+.logoutBtn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: #ff4d4f;
+  padding: 10px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: 0.3s;
+}
+
+.logoutBtn:hover {
+  background: #fff1f0;
+  border-radius: 8px;
+}
+
+
+
+@media (max-width: 768px) {
+  .menu {
+    position: fixed;
+    top: 0;
+    left: -280px;
+    width: 280px;
+    height: 100vh;
+    z-index: 1000;
+    transition: 0.3s ease-in-out;
+    background: #fff;
+    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+  }
+
+  .menuOpen {
+    left: 0;
+  }
+
+  .overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(2px);
+    z-index: 999;
+  }
+  
+  .mainContent {
+    padding: 20px;
+    margin-left: 0;
+  }
+}
