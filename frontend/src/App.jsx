@@ -29,7 +29,7 @@ import DashboardHome from "./pages/dashboard/Home/DashboardHome";
 const App = () => {
   return (
     <Router>
-      <ToastContainer position="top-right" autoClose={3000} />
+      <ToastContainer position="top-right" autoClose={1000} />
       <Routes>
         <Route element={<Layout />}>
           <Route path="/" element={<Home />} />
