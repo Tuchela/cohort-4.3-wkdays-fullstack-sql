@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { ToastContainer } from "react-toastify"; // ← add
-import "react-toastify/dist/ReactToastify.css"; // ← add
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import "./App.css";
 import {
   Home,
@@ -18,6 +18,7 @@ import {
   Settings,
   Users,
   ForgotPassword,
+  VerifyOtp,
 } from "./pages/index";
 import Layout from "./layout/Layout";
 import AuthLayout from "./authlayout/AuthLayout";
@@ -28,7 +29,7 @@ import DashboardHome from "./pages/dashboard/Home/DashboardHome";
 const App = () => {
   return (
     <Router>
-      <ToastContainer position="top-right" autoClose={3000} /> {/* ← add */}
+      <ToastContainer position="top-right" autoClose={3000} />
       <Routes>
         <Route element={<Layout />}>
           <Route path="/" element={<Home />} />
@@ -45,6 +46,7 @@ const App = () => {
           <Route path="/auth/login" element={<Login />} />
           <Route path="/auth/register" element={<Register />} />
           <Route path="/auth/forgot-password" element={<ForgotPassword />} />
+          <Route path="/auth/verify-otp" element={<VerifyOtp />} />
         </Route>
 
         <Route

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import styles from "./login.module.css";
+import styles from "./verifyOtp.module.css";
 
 const VerifyOtp = () => {
   const [formData, setFormData] = useState({

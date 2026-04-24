@@ -11,6 +11,7 @@ import Profile from "./dashboard/profile/Profile.jsx";
 import Login from "./auth/login/Login.jsx";
 import Register from "./auth/register/Register.jsx";
 import ForgotPassword from "./auth/forgotPassword/ForgotPassword.jsx";
+import VerifyOtp from "./auth/verifyotp/VerifyOtp.jsx"; // ← add
 import Settings from "./dashboard/settings/Settings.jsx";
 import Users from "./dashboard/users/Users.jsx";
 
@@ -30,4 +31,5 @@ export {
   Settings,
   Users,
   ForgotPassword,
+  VerifyOtp, // ← add
 };
