@@ -1,0 +1,73 @@
+export const usersData = [
+  {
+    id: 1,
+    name: "Jesse Thomas",
+    points: 637,
+    accuracy: 98,
+    rank: 1,
+    trend: "up",
+    img: "/PIcture.jpeg",
+  },
+  {
+    id: 2,
+    name: "Thisbe Meyer",
+    points: 469,
+    accuracy: 89,
+    rank: 2,
+    trend: "up",
+    img: "/PIcture.jpeg",
+  },
+  {
+    id: 3,
+    name: "Edward S.",
+    points: 422,
+    accuracy: 88,
+    rank: 3,
+    trend: "down",
+    img: "/PIcture.jpeg",
+  },
+  {
+    id: 4,
+    name: "Lura Silverman.",
+    points: 672,
+    accuracy: 88,
+    rank: 4,
+    trend: "up",
+    img: "/PIcture.jpeg",
+  },
+];
+
+export const groupsData = [
+  {
+    id: 1,
+    name: "Houston Facility",
+    points: 52,
+    accuracy: 97,
+    trend: "up",
+    rank: 1,
+  },
+  {
+    id: 2,
+    name: "Test Group",
+    points: 52,
+    accuracy: 95,
+    trend: "down",
+    rank: 2,
+  },
+  {
+    id: 3,
+    name: "Sales Leadership",
+    points: 52,
+    accuracy: 87,
+    trend: "up",
+    rank: 3,
+  },
+  {
+    id: 4,
+    name: "Northeast Region",
+    points: 52,
+    accuracy: 87,
+    trend: "up",
+    rank: 4,
+  },
+];
