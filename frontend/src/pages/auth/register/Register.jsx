@@ -11,6 +11,7 @@ const Register = () => {
     address: "",
     password: "",
   });
+  const [showPassword, setShowPassword] = useState(false);
 
   const navigate = useNavigate();
 
@@ -89,14 +90,27 @@ const Register = () => {
             onChange={handleChange}
           />
         </div>
-        <div>
+        <div style={{ position: "relative" }}>
           <input
             name="password"
-            type="password"
+            type={showPassword ? "text" : "password"}
             placeholder="enter password"
             value={formData.password}
             onChange={handleChange}
           />
+          <span
+            onClick={() => setShowPassword(!showPassword)}
+            style={{
+              position: "absolute",
+              right: "10px",
+              top: "50%",
+              transform: "translateY(-50%)",
+              cursor: "pointer",
+              userSelect: "none",
+            }}
+          >
+            {showPassword ? "🙈" : "👁️"}
+          </span>
         </div>
         <div>
           <input

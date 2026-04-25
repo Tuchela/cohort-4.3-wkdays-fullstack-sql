@@ -9,6 +9,7 @@ const VerifyOtp = () => {
     otp: "",
     newPassword: "",
   });
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -34,18 +35,18 @@ const VerifyOtp = () => {
       const data = await res.json();
 
       if (res.status === 200) {
-        toast.success(data.message); // "Password reset successful"
+        toast.success(data.message);
         navigate("/auth/login");
         return;
       }
 
       if (res.status === 400) {
-        toast.error(data.message); // "OTP expired or not set" / "Invalid OTP" / "email, otp and newPassword required"
+        toast.error(data.message);
         return;
       }
 
       if (res.status === 404) {
-        toast.error(data.message); // "User not found"
+        toast.error(data.message);
         return;
       }
 
@@ -83,15 +84,28 @@ const VerifyOtp = () => {
             required
           />
         </div>
-        <div>
+        <div style={{ position: "relative" }}>
           <input
             name="newPassword"
-            type="password"
+            type={showPassword ? "text" : "password"}
             placeholder="Enter new password"
             value={formData.newPassword}
             onChange={handleChange}
             required
           />
+          <span
+            onClick={() => setShowPassword(!showPassword)}
+            style={{
+              position: "absolute",
+              right: "10px",
+              top: "50%",
+              transform: "translateY(-50%)",
+              cursor: "pointer",
+              userSelect: "none",
+            }}
+          >
+            {showPassword ? "🙈" : "👁️"}
+          </span>
         </div>
 
         <button type="submit">Submit</button>

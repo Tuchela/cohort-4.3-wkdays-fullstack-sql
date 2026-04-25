@@ -6,6 +6,7 @@ import styles from "./login.module.css";
 
 const Login = () => {
   const [formData, setFormData] = useState({ email: "", password: "" });
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -32,14 +33,13 @@ const Login = () => {
 
       if (res.status === 200) {
         login(data.token);
-        localStorage.setItem("userId", data.id);
-        toast.success(data.message); // "Welcome back Fahanmi, you have logged in successfully"
+        toast.success(data.message);
         navigate("/dashboard");
         return;
       }
 
       if (res.status === 401) {
-        toast.error(data.error); // "Invalid user credentials, Either email or password incorrect"
+        toast.error(data.error);
         return;
       }
 
@@ -67,15 +67,28 @@ const Login = () => {
             required
           />
         </div>
-        <div>
+        <div style={{ position: "relative" }}>
           <input
             name="password"
-            type="password"
+            type={showPassword ? "text" : "password"}
             placeholder="Enter password"
             value={formData.password}
             onChange={handleChange}
             required
           />
+          <span
+            onClick={() => setShowPassword(!showPassword)}
+            style={{
+              position: "absolute",
+              right: "10px",
+              top: "50%",
+              transform: "translateY(-50%)",
+              cursor: "pointer",
+              userSelect: "none",
+            }}
+          >
+            {showPassword ? "🙈" : "👁️"}
+          </span>
         </div>
 
         <button type="submit">Submit</button>
