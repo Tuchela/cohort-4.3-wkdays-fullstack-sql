@@ -14,7 +14,6 @@ import {
   passwordReset,
 } from "../database/queries/sql.js";
 import nodemailer from "nodemailer";
-// import { Resend } from "resend";
 import crypto from "crypto";
 // Full CRUD Application
 
@@ -102,24 +101,62 @@ export const login = async (req, res) => {
 /**
  * ForgotPssword
  */
+const transporter = nodemailer.createTransport({
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true,
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+  // Connection settings
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
+  socketTimeout: 15000,
+  // Pooling for better performance
+  pool: true,
+  maxConnections: 5,
+});
+
+// Verify with better error logging
+transporter.verify((error, success) => {
+  if (error) {
+    console.error("❌ Mail transporter error:", {
+      message: error.message,
+      code: error.code,
+      command: error.command,
+    });
+  } else {
+    console.log("✅ Mail server is ready");
+  }
+});
 
 export const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
 
-    const { rows } = await pool.query(findIfEmailExist, [email]);
-    if (!rows[0]) {
-      // Neutral response to prevent user enumeration
-      return res.status(200).json({
-        message: "If this email is registered, an OTP has been sent.",
+    // Check if transporter is ready
+    if (!transporter.options.auth.pass) {
+      console.error("❌ Email password not configured");
+      return res.status(503).json({
+        message: "Email service not configured properly",
       });
     }
 
+    const { rows } = await pool.query(findIfEmailExist, [email]);
+    if (!rows[0]) {
+      return res.status(401).json({
+        message: "User does not exist. Kindly register.",
+      });
+    }
+
+    // Generate OTP
     const otp = crypto.randomInt(100000, 999999).toString();
     const otpExpires = Date.now() + 10 * 60 * 1000;
     const hashedOtp = hashOTP(otp);
+    await pool.query(forgetPassword, [hashedOtp, otpExpires, email]);
 
-    // Attempt email before persisting OTP
+    // Send email with retry logic
     let mailSent = false;
     let lastError = null;
 
@@ -144,19 +181,10 @@ export const forgotPassword = async (req, res) => {
         break;
       } catch (mailError) {
         lastError = mailError;
-        console.error(`❌ Email attempt ${attempt} failed:`, {
-          code: mailError.code,
-          responseCode: mailError.responseCode,
-          message: mailError.message,
-        });
-
-        // Don't retry on permanent failures
-        const isPermanent =
-          ["EAUTH", "ENOTFOUND"].includes(mailError.code) ||
-          (mailError.responseCode >= 500 && mailError.responseCode < 600);
-
-        if (isPermanent) break;
-        if (attempt < 3) await new Promise((r) => setTimeout(r, 2000));
+        console.error(`❌ Email attempt ${attempt} failed:`, mailError.message);
+        if (attempt < 3) {
+          await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait 2 seconds before retry
+        }
       }
     }
 
@@ -164,215 +192,30 @@ export const forgotPassword = async (req, res) => {
       throw lastError || new Error("Failed to send email after 3 attempts");
     }
 
-    // ✅ Only persist OTP after successful delivery
-    await pool.query(forgetPassword, [hashedOtp, otpExpires, email]);
-
     return res.status(200).json({ message: "OTP sent to your email" });
   } catch (error) {
+    // Handle specific email errors
     if (error.code === "EAUTH") {
-      console.error("❌ SMTP auth failed — check EMAIL_USER and EMAIL_PASS");
-      return res
-        .status(503)
-        .json({
-          message: "Email service unavailable. Please contact support.",
-        });
+      console.error("❌ Authentication failed - check your email/password");
+      return res.status(503).json({
+        message: "Email authentication failed. Please contact support.",
+      });
     }
 
-    if (
-      error.code === "ECONNECTION" ||
-      error.code === "ETIMEDOUT" ||
-      error.code === "ENOTFOUND"
-    ) {
+    if (error.code === "ECONNECTION" || error.code === "ETIMEDOUT") {
       console.error("❌ Mail connection error:", error.message);
-      return res
-        .status(503)
-        .json({
-          message:
-            "Email service temporarily unavailable. Please try again later.",
-        });
-    }
-
-    if (error.responseCode >= 500) {
-      console.error("❌ SMTP rejection:", error.response);
-      return res
-        .status(503)
-        .json({ message: "Email delivery failed. Please try again later." });
+      return res.status(503).json({
+        message:
+          "Email service temporarily unavailable. Please try again later.",
+      });
     }
 
     console.error("❌ forgotPassword error:", error);
-    return res
-      .status(500)
-      .json({ message: "Something went wrong, please try again" });
+    return res.status(500).json({
+      message: "Something went wrong, please try again",
+    });
   }
 };
-
-// const transporter = nodemailer.createTransport({
-//   host: "smtp.gmail.com",
-//   port: 465,
-//   secure: true,
-//   auth: {
-//     user: process.env.EMAIL_USER,
-//     pass: process.env.EMAIL_PASS,
-//   },
-//   // Connection settings
-//   connectionTimeout: 10000,
-//   greetingTimeout: 10000,
-//   socketTimeout: 15000,
-//   // Pooling for better performance
-//   pool: true,
-//   maxConnections: 5,
-// });
-
-// // Verify with better error logging
-// transporter.verify((error, success) => {
-//   if (error) {
-//     console.error("❌ Mail transporter error:", {
-//       message: error.message,
-//       code: error.code,
-//       command: error.command,
-//     });
-//   } else {
-//     console.log("✅ Mail server is ready");
-//   }
-// });
-
-// export const forgotPassword = async (req, res) => {
-//   try {
-//     const { email } = req.body;
-
-//     // Check if transporter is ready
-//     if (!transporter.options.auth.pass) {
-//       console.error("❌ Email password not configured");
-//       return res.status(503).json({
-//         message: "Email service not configured properly",
-//       });
-//     }
-
-//     const { rows } = await pool.query(findIfEmailExist, [email]);
-//     if (!rows[0]) {
-//       return res.status(401).json({
-//         message: "User does not exist. Kindly register.",
-//       });
-//     }
-
-//     // Generate OTP
-//     const otp = crypto.randomInt(100000, 999999).toString();
-//     const otpExpires = Date.now() + 10 * 60 * 1000;
-//     const hashedOtp = hashOTP(otp);
-//     await pool.query(forgetPassword, [hashedOtp, otpExpires, email]);
-
-//     // Send email with retry logic
-//     let mailSent = false;
-//     let lastError = null;
-
-//     for (let attempt = 1; attempt <= 3; attempt++) {
-//       try {
-//         await transporter.sendMail({
-//           from: `"Support Team" <${process.env.EMAIL_USER}>`,
-//           to: email,
-//           subject: "Password Reset OTP",
-//           text: `Your OTP is ${otp}. It expires in 10 minutes.`,
-//           html: `
-//             <div style="font-family: Arial, sans-serif; max-width: 400px; margin: auto;">
-//               <h2>Password Reset</h2>
-//               <p>Your OTP code is:</p>
-//               <h1 style="letter-spacing: 8px; color: #4F46E5;">${otp}</h1>
-//               <p>This code expires in <strong>10 minutes</strong>.</p>
-//               <p>If you did not request this, please ignore this email.</p>
-//             </div>
-//           `,
-//         });
-//         mailSent = true;
-//         break;
-//       } catch (mailError) {
-//         lastError = mailError;
-//         console.error(`❌ Email attempt ${attempt} failed:`, mailError.message);
-//         if (attempt < 3) {
-//           await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait 2 seconds before retry
-//         }
-//       }
-//     }
-
-//     if (!mailSent) {
-//       throw lastError || new Error("Failed to send email after 3 attempts");
-//     }
-
-//     return res.status(200).json({ message: "OTP sent to your email" });
-//   } catch (error) {
-//     // Handle specific email errors
-//     if (error.code === "EAUTH") {
-//       console.error("❌ Authentication failed - check your email/password");
-//       return res.status(503).json({
-//         message: "Email authentication failed. Please contact support.",
-//       });
-//     }
-
-//     if (error.code === "ECONNECTION" || error.code === "ETIMEDOUT") {
-//       console.error("❌ Mail connection error:", error.message);
-//       return res.status(503).json({
-//         message:
-//           "Email service temporarily unavailable. Please try again later.",
-//       });
-//     }
-
-//     console.error("❌ forgotPassword error:", error);
-//     return res.status(500).json({
-//       message: "Something went wrong, please try again",
-//     });
-//   }
-// };
-
-// const resend = new Resend(process.env.RESEND_API_KEY);
-
-// export const forgotPassword = async (req, res) => {
-//   try {
-//     const { email } = req.body;
-
-//     const { rows } = await pool.query(findIfEmailExist, [email]);
-//     if (!rows[0]) {
-//       return res.status(401).json({
-//         message: "User does not exist. Kindly register.",
-//       });
-//     }
-
-//     // Generate OTP
-//     const otp = crypto.randomInt(100000, 999999).toString();
-//     const otpExpires = Date.now() + 10 * 60 * 1000;
-//     const hashedOtp = hashOTP(otp);
-//     await pool.query(forgetPassword, [hashedOtp, otpExpires, email]);
-
-//     // Send email
-//     const { error } = await resend.emails.send({
-//       from: "Support Team <onboarding@resend.dev>",
-//       to: email,
-//       subject: "Password Reset OTP",
-//       html: `
-//         <div style="font-family: Arial, sans-serif; max-width: 400px; margin: auto;">
-//           <h2>Password Reset</h2>
-//           <p>Your OTP code is:</p>
-//           <h1 style="letter-spacing: 8px; color: #4F46E5;">${otp}</h1>
-//           <p>This code expires in <strong>10 minutes</strong>.</p>
-//           <p>If you did not request this, please ignore this email.</p>
-//         </div>
-//       `,
-//     });
-
-//     if (error) {
-//       console.error("❌ Resend error:", error);
-//       return res.status(503).json({
-//         message:
-//           "Email service temporarily unavailable. Please try again later.",
-//       });
-//     }
-
-//     return res.status(200).json({ message: "OTP sent to your email" });
-//   } catch (error) {
-//     console.error("❌ forgotPassword error:", error);
-//     return res.status(500).json({
-//       message: "Something went wrong, please try again",
-//     });
-//   }
-// };
 
 /**
  * Reset Password
