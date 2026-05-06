@@ -245,7 +245,7 @@ export const forgotPassword = async (req, res) => {
     await pool.query(forgetPassword, [hashedOtp, otpExpires, email]);
 
     // Send email via Brevo HTTP API
-    const sendSmtpEmail = new Brevo.SendSmtpEmail();
+    const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail(); // ← fixed
     sendSmtpEmail.subject = "Password Reset OTP";
     sendSmtpEmail.to = [{ email: email }];
     sendSmtpEmail.sender = {
