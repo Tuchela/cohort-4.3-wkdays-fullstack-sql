@@ -13,7 +13,7 @@ import {
   forgetPassword,
   passwordReset,
 } from "../database/queries/sql.js";
-import * as Brevo from "@getbrevo/brevo"
+import { createRequire } from "module";
 // import nodemailer from "nodemailer";
 import crypto from "crypto";
 // Full CRUD Application
@@ -218,8 +218,14 @@ export const login = async (req, res) => {
 //   }
 // };
 
-const brevoClient = new Brevo.TransactionalEmailsApi();
-brevoClient.authentications["apiKey"].apiKey = process.env.BREVO_API_KEY;
+const require = createRequire(import.meta.url);
+const SibApiV3Sdk = require("sib-api-v3-sdk");
+
+const defaultClient = SibApiV3Sdk.ApiClient.instance;
+const apiKey = defaultClient.authentications["api-key"];
+apiKey.apiKey = process.env.BREVO_API_KEY;
+
+const brevoClient = new SibApiV3Sdk.TransactionalEmailsApi();
 
 export const forgotPassword = async (req, res) => {
   try {
