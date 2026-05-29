@@ -32,7 +32,7 @@ const App = () => {
       <ToastContainer
         position="top-right"
         autoClose={1000}
-        hideProgressBar={true}
+        hideProgressBar={false}
         closeOnClick={true}
       />
       <Routes>
