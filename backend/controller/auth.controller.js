@@ -13,8 +13,9 @@ import {
   forgetPassword,
   passwordReset,
 } from "../database/queries/sql.js";
+import sgMail from "../config/mailer.js";
 // import { createRequire } from "module";
-import nodemailer from "nodemailer";
+// import nodemailer from "nodemailer";
 import crypto from "crypto";
 // Full CRUD Application
 
@@ -102,43 +103,21 @@ export const login = async (req, res) => {
 /**
  * ForgotPssword
  */
-// forgetpassword | otp email verification | otp sms
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-  // Connection settings
-  connectionTimeout: 10000,
-  greetingTimeout: 10000,
-  socketTimeout: 15000,
-  // Pooling for better performance
-  pool: true,
-  maxConnections: 5,
-});
 
-// Verify with better error logging
-transporter.verify((error, success) => {
-  if (error) {
-    console.error("❌ Mail transporter error:", {
-      message: error.message,
-      code: error.code,
-      command: error.command,
-    });
-  } else {
-    console.log("✅ Mail server is ready");
-  }
-});
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 export const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
 
-    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-      console.error("❌ Email credentials not configured");
+    if (!email || typeof email !== "string" || !email.includes("@")) {
+      return res
+        .status(400)
+        .json({ message: "A valid email address is required." });
+    }
+
+    if (!process.env.SENDGRID_API_KEY) {
+      console.error("❌ SendGrid API key not configured");
       return res.status(503).json({
         message: "Email service not configured properly",
       });
@@ -146,8 +125,8 @@ export const forgotPassword = async (req, res) => {
 
     const { rows } = await pool.query(findEmail, [email]);
     if (!rows[0]) {
-      return res.status(401).json({
-        message: "User does not exist. Kindly register.",
+      return res.status(200).json({
+        message: "If this email is registered, an OTP has been sent.",
       });
     }
 
@@ -155,69 +134,162 @@ export const forgotPassword = async (req, res) => {
     const otp = crypto.randomInt(100000, 999999).toString();
     const otpExpires = Date.now() + 10 * 60 * 1000;
     const hashedOtp = hashOTP(otp);
-    await pool.query(forgetPassword, [hashedOtp, otpExpires, email]);
 
-    // Send email with retry logic
-    let mailSent = false;
-    let lastError = null;
-
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      try {
-        await transporter.sendMail({
-          from: `"Support Team" <${process.env.SMTP_USER}>`,
-          to: email,
-          subject: "Password Reset OTP",
-          text: `Your OTP is ${otp}. It expires in 10 minutes.`,
-          html: `
-            <div style="font-family: Arial, sans-serif; max-width: 400px; margin: auto;">
-              <h2>Password Reset</h2>
-              <p>Your OTP code is:</p>
-              <h1 style="letter-spacing: 8px; color: #4F46E5;">${otp}</h1>
-              <p>This code expires in <strong>10 minutes</strong>.</p>
-              <p>If you did not request this, please ignore this email.</p>
-            </div>
-          `,
-        });
-        mailSent = true;
-        break;
-      } catch (mailError) {
-        lastError = mailError;
-        console.error(`❌ Email attempt ${attempt} failed:`, mailError.message);
-        if (attempt < 3) {
-          await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait 2 seconds before retry
-        }
-      }
-    }
-
-    if (!mailSent) {
-      throw lastError || new Error("Failed to send email after 3 attempts");
-    }
-
-    return res.status(200).json({ message: "OTP sent to your email" });
-  } catch (error) {
-    // Handle specific email errors
-    if (error.code === "EAUTH") {
-      console.error("❌ Authentication failed - check your email/password");
-      return res.status(503).json({
-        message: "Email authentication failed. Please contact support.",
+    // ✅ Send email BEFORE persisting OTP
+    try {
+      await sgMail.send({
+        from: process.env.SENDGRID_FROM,
+        to: email,
+        subject: "Password Reset OTP",
+        text: `Your OTP is ${otp}. It expires in 10 minutes.`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 400px; margin: auto;">
+            <h2>Password Reset</h2>
+            <p>Your OTP code is:</p>
+            <h1 style="letter-spacing: 8px; color: #4F46E5;">${otp}</h1>
+            <p>This code expires in <strong>10 minutes</strong>.</p>
+            <p>If you did not request this, please ignore this email.</p>
+          </div>
+        `,
       });
-    }
-
-    if (error.code === "ECONNECTION" || error.code === "ETIMEDOUT") {
-      console.error("❌ Mail connection error:", error.message);
+    } catch (mailError) {
+      console.error(
+        "❌ SendGrid error:",
+        mailError.response?.body || mailError.message,
+      );
       return res.status(503).json({
         message:
           "Email service temporarily unavailable. Please try again later.",
       });
     }
 
+    // ✅ Only persist OTP after successful delivery
+    await pool.query(forgetPassword, [hashedOtp, otpExpires, email]);
+
+    return res.status(200).json({ message: "OTP sent to your email" });
+  } catch (error) {
     console.error("❌ forgotPassword error:", error);
-    return res.status(500).json({
-      message: "Something went wrong, please try again",
-    });
+    return res
+      .status(500)
+      .json({ message: "Something went wrong, please try again" });
   }
 };
 
+// // forgetpassword | otp email verification | otp sms
+// const transporter = nodemailer.createTransport({
+//   host: "smtp.gmail.com",
+//   port: 465,
+//   secure: true,
+//   auth: {
+//     user: process.env.SMTP_USER,
+//     pass: process.env.SMTP_PASS,
+//   },
+//   // Connection settings
+//   connectionTimeout: 10000,
+//   greetingTimeout: 10000,
+//   socketTimeout: 15000,
+//   // Pooling for better performance
+//   pool: true,
+//   maxConnections: 5,
+// });
+
+// // Verify with better error logging
+// transporter.verify((error, success) => {
+//   if (error) {
+//     console.error("❌ Mail transporter error:", {
+//       message: error.message,
+//       code: error.code,
+//       command: error.command,
+//     });
+//   } else {
+//     console.log("✅ Mail server is ready");
+//   }
+// });
+
+// export const forgotPassword = async (req, res) => {
+//   try {
+//     const { email } = req.body;
+
+//     if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+//       console.error("❌ Email credentials not configured");
+//       return res.status(503).json({
+//         message: "Email service not configured properly",
+//       });
+//     }
+
+//     const { rows } = await pool.query(findEmail, [email]);
+//     if (!rows[0]) {
+//       return res.status(401).json({
+//         message: "User does not exist. Kindly register.",
+//       });
+//     }
+
+//     // Generate OTP
+//     const otp = crypto.randomInt(100000, 999999).toString();
+//     const otpExpires = Date.now() + 10 * 60 * 1000;
+//     const hashedOtp = hashOTP(otp);
+//     await pool.query(forgetPassword, [hashedOtp, otpExpires, email]);
+
+//     // Send email with retry logic
+//     let mailSent = false;
+//     let lastError = null;
+
+//     for (let attempt = 1; attempt <= 3; attempt++) {
+//       try {
+//         await transporter.sendMail({
+//           from: `"Support Team" <${process.env.SMTP_USER}>`,
+//           to: email,
+//           subject: "Password Reset OTP",
+//           text: `Your OTP is ${otp}. It expires in 10 minutes.`,
+//           html: `
+//             <div style="font-family: Arial, sans-serif; max-width: 400px; margin: auto;">
+//               <h2>Password Reset</h2>
+//               <p>Your OTP code is:</p>
+//               <h1 style="letter-spacing: 8px; color: #4F46E5;">${otp}</h1>
+//               <p>This code expires in <strong>10 minutes</strong>.</p>
+//               <p>If you did not request this, please ignore this email.</p>
+//             </div>
+//           `,
+//         });
+//         mailSent = true;
+//         break;
+//       } catch (mailError) {
+//         lastError = mailError;
+//         console.error(`❌ Email attempt ${attempt} failed:`, mailError.message);
+//         if (attempt < 3) {
+//           await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait 2 seconds before retry
+//         }
+//       }
+//     }
+
+//     if (!mailSent) {
+//       throw lastError || new Error("Failed to send email after 3 attempts");
+//     }
+
+//     return res.status(200).json({ message: "OTP sent to your email" });
+//   } catch (error) {
+//     // Handle specific email errors
+//     if (error.code === "EAUTH") {
+//       console.error("❌ Authentication failed - check your email/password");
+//       return res.status(503).json({
+//         message: "Email authentication failed. Please contact support.",
+//       });
+//     }
+
+//     if (error.code === "ECONNECTION" || error.code === "ETIMEDOUT") {
+//       console.error("❌ Mail connection error:", error.message);
+//       return res.status(503).json({
+//         message:
+//           "Email service temporarily unavailable. Please try again later.",
+//       });
+//     }
+
+//     console.error("❌ forgotPassword error:", error);
+//     return res.status(500).json({
+//       message: "Something went wrong, please try again",
+//     });
+//   }
+// };
 // const require = createRequire(import.meta.url);
 // const SibApiV3Sdk = require("sib-api-v3-sdk");
 
