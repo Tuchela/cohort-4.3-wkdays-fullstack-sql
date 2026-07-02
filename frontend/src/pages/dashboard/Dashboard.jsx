@@ -82,8 +82,8 @@ const Dashboard = () => {
             <div className={styles.userProfile}>
               <img src="/PIcture.jpeg" alt="User" className={styles.avatar} />
               <div className={styles.userInfo}>
-                <span className={styles.userName}>Iyke Aceee</span>
-                <span className={styles.userEmail}>iykee@tesla.com</span>
+                <span className={styles.userName}>Tuchela</span>
+                <span className={styles.userEmail}>tuchelaa@tesla.com</span>
               </div>
             </div>
             <button onClick={logoutUser} className={styles.logoutButton}>
