@@ -13,7 +13,7 @@ import {
   forgetPassword,
   passwordReset,
 } from "../database/queries/sql.js";
-import { transporter } from "../config/mailer.js";
+import brevo from "../config/mailer.js";
 import crypto from "crypto";
 
 /**
@@ -112,20 +112,20 @@ export const forgotPassword = async (req, res) => {
 
     // ✅ Send email BEFORE persisting OTP
     try {
-      await transporter.sendMail({
-        from: `"Support Team" <${process.env.BREVO_USER}>`,
-        to: email,
+      await brevo.sendTransacEmail({
+        sender: { name: "Support Team", email: process.env.BREVO_SENDER_EMAIL },
+        to: [{ email }],
         subject: "Password Reset OTP",
-        text: `Your OTP is ${otp}. It expires in 10 minutes.`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 400px; margin: auto;">
-            <h2>Password Reset</h2>
-            <p>Your OTP code is:</p>
-            <h1 style="letter-spacing: 8px; color: #4F46E5;">${otp}</h1>
-            <p>This code expires in <strong>10 minutes</strong>.</p>
-            <p>If you did not request this, please ignore this email.</p>
-          </div>
-        `,
+        textContent: `Your OTP is ${otp}. It expires in 10 minutes.`,
+        htmlContent: `
+      <div style="font-family: Arial, sans-serif; max-width: 400px; margin: auto;">
+        <h2>Password Reset</h2>
+        <p>Your OTP code is:</p>
+        <h1 style="letter-spacing: 8px; color: #4F46E5;">${otp}</h1>
+        <p>This code expires in <strong>10 minutes</strong>.</p>
+        <p>If you did not request this, please ignore this email.</p>
+      </div>
+    `,
       });
     } catch (mailError) {
       console.error("❌ Brevo error:", mailError.message);
