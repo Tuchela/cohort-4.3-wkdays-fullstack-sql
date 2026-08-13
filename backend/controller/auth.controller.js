@@ -13,16 +13,12 @@ import {
   forgetPassword,
   passwordReset,
 } from "../database/queries/sql.js";
-import sgMail from "../config/mailer.js";
-// import { createRequire } from "module";
-// import nodemailer from "nodemailer";
+import { transporter } from "../config/mailer.js";
 import crypto from "crypto";
-// Full CRUD Application
 
 /**
  * Register
  */
-
 export const register = async (req, res) => {
   try {
     const { first_name, last_name, email, password, role } = req.body;
@@ -51,14 +47,11 @@ export const register = async (req, res) => {
 /**
  * Login
  */
-
 export const login = async (req, res) => {
   try {
-    // find by email
     const { email } = req.body;
     const { rows } = await pool.query(findIfEmailExist, [email]);
 
-    // check if that email exist
     if (!rows[0]) {
       return res.status(401).json({
         error: "Invalid user credentials, Either email or password incorrect",
@@ -67,7 +60,6 @@ export const login = async (req, res) => {
 
     const { id, role, first_name } = rows[0];
 
-    // check if passwprd exist
     const checkIfPasswordMatch = verifyPassword(
       rows[0].password,
       req.body.password,
@@ -79,14 +71,7 @@ export const login = async (req, res) => {
       });
     }
 
-    // generate token
-    const token = generateToken(
-      {
-        id,
-        role,
-      },
-      process.env.JWT_SECRET_KEY,
-    );
+    const token = generateToken({ id, role }, process.env.JWT_SECRET_KEY);
 
     return res.status(200).json({
       status: "Success",
@@ -100,12 +85,10 @@ export const login = async (req, res) => {
     });
   }
 };
+
 /**
- * ForgotPssword
+ * Forgot Password
  */
-
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-
 export const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
@@ -116,13 +99,6 @@ export const forgotPassword = async (req, res) => {
         .json({ message: "A valid email address is required." });
     }
 
-    if (!process.env.SENDGRID_API_KEY) {
-      console.error("❌ SendGrid API key not configured");
-      return res.status(503).json({
-        message: "Email service not configured properly",
-      });
-    }
-
     const { rows } = await pool.query(findEmail, [email]);
     if (!rows[0]) {
       return res.status(404).json({
@@ -130,15 +106,14 @@ export const forgotPassword = async (req, res) => {
       });
     }
 
-    // Generate OTP
     const otp = crypto.randomInt(100000, 999999).toString();
     const otpExpires = Date.now() + 10 * 60 * 1000;
     const hashedOtp = hashOTP(otp);
 
     // ✅ Send email BEFORE persisting OTP
     try {
-      await sgMail.send({
-        from: process.env.SENDGRID_FROM,
+      await transporter.sendMail({
+        from: `"Support Team" <${process.env.BREVO_USER}>`,
         to: email,
         subject: "Password Reset OTP",
         text: `Your OTP is ${otp}. It expires in 10 minutes.`,
@@ -153,10 +128,7 @@ export const forgotPassword = async (req, res) => {
         `,
       });
     } catch (mailError) {
-      console.error(
-        "❌ SendGrid error:",
-        mailError.response?.body || mailError.message,
-      );
+      console.error("❌ Brevo error:", mailError.message);
       return res.status(503).json({
         message:
           "Email service temporarily unavailable. Please try again later.",
@@ -175,180 +147,9 @@ export const forgotPassword = async (req, res) => {
   }
 };
 
-// // forgetpassword | otp email verification | otp sms
-// const transporter = nodemailer.createTransport({
-//   host: "smtp.gmail.com",
-//   port: 465,
-//   secure: true,
-//   auth: {
-//     user: process.env.SMTP_USER,
-//     pass: process.env.SMTP_PASS,
-//   },
-//   // Connection settings
-//   connectionTimeout: 10000,
-//   greetingTimeout: 10000,
-//   socketTimeout: 15000,
-//   // Pooling for better performance
-//   pool: true,
-//   maxConnections: 5,
-// });
-
-// // Verify with better error logging
-// transporter.verify((error, success) => {
-//   if (error) {
-//     console.error("❌ Mail transporter error:", {
-//       message: error.message,
-//       code: error.code,
-//       command: error.command,
-//     });
-//   } else {
-//     console.log("✅ Mail server is ready");
-//   }
-// });
-
-// export const forgotPassword = async (req, res) => {
-//   try {
-//     const { email } = req.body;
-
-//     if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-//       console.error("❌ Email credentials not configured");
-//       return res.status(503).json({
-//         message: "Email service not configured properly",
-//       });
-//     }
-
-//     const { rows } = await pool.query(findEmail, [email]);
-//     if (!rows[0]) {
-//       return res.status(401).json({
-//         message: "User does not exist. Kindly register.",
-//       });
-//     }
-
-//     // Generate OTP
-//     const otp = crypto.randomInt(100000, 999999).toString();
-//     const otpExpires = Date.now() + 10 * 60 * 1000;
-//     const hashedOtp = hashOTP(otp);
-//     await pool.query(forgetPassword, [hashedOtp, otpExpires, email]);
-
-//     // Send email with retry logic
-//     let mailSent = false;
-//     let lastError = null;
-
-//     for (let attempt = 1; attempt <= 3; attempt++) {
-//       try {
-//         await transporter.sendMail({
-//           from: `"Support Team" <${process.env.SMTP_USER}>`,
-//           to: email,
-//           subject: "Password Reset OTP",
-//           text: `Your OTP is ${otp}. It expires in 10 minutes.`,
-//           html: `
-//             <div style="font-family: Arial, sans-serif; max-width: 400px; margin: auto;">
-//               <h2>Password Reset</h2>
-//               <p>Your OTP code is:</p>
-//               <h1 style="letter-spacing: 8px; color: #4F46E5;">${otp}</h1>
-//               <p>This code expires in <strong>10 minutes</strong>.</p>
-//               <p>If you did not request this, please ignore this email.</p>
-//             </div>
-//           `,
-//         });
-//         mailSent = true;
-//         break;
-//       } catch (mailError) {
-//         lastError = mailError;
-//         console.error(`❌ Email attempt ${attempt} failed:`, mailError.message);
-//         if (attempt < 3) {
-//           await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait 2 seconds before retry
-//         }
-//       }
-//     }
-
-//     if (!mailSent) {
-//       throw lastError || new Error("Failed to send email after 3 attempts");
-//     }
-
-//     return res.status(200).json({ message: "OTP sent to your email" });
-//   } catch (error) {
-//     // Handle specific email errors
-//     if (error.code === "EAUTH") {
-//       console.error("❌ Authentication failed - check your email/password");
-//       return res.status(503).json({
-//         message: "Email authentication failed. Please contact support.",
-//       });
-//     }
-
-//     if (error.code === "ECONNECTION" || error.code === "ETIMEDOUT") {
-//       console.error("❌ Mail connection error:", error.message);
-//       return res.status(503).json({
-//         message:
-//           "Email service temporarily unavailable. Please try again later.",
-//       });
-//     }
-
-//     console.error("❌ forgotPassword error:", error);
-//     return res.status(500).json({
-//       message: "Something went wrong, please try again",
-//     });
-//   }
-// };
-// const require = createRequire(import.meta.url);
-// const SibApiV3Sdk = require("sib-api-v3-sdk");
-
-// const defaultClient = SibApiV3Sdk.ApiClient.instance;
-// const apiKey = defaultClient.authentications["api-key"];
-// apiKey.apiKey = process.env.BREVO_API_KEY;
-
-// const brevoClient = new SibApiV3Sdk.TransactionalEmailsApi();
-
-// export const forgotPassword = async (req, res) => {
-//   try {
-//     const { email } = req.body;
-
-//     const { rows } = await pool.query(findIfEmailExist, [email]);
-//     if (!rows[0]) {
-//       return res.status(401).json({
-//         message: "User does not exist. Kindly register.",
-//       });
-//     }
-
-//     // Generate OTP
-//     const otp = crypto.randomInt(100000, 999999).toString();
-//     const otpExpires = Date.now() + 10 * 60 * 1000;
-//     const hashedOtp = hashOTP(otp);
-//     await pool.query(forgetPassword, [hashedOtp, otpExpires, email]);
-
-//     // Send email via Brevo HTTP API
-//     const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail(); // ← fixed
-//     sendSmtpEmail.subject = "Password Reset OTP";
-//     sendSmtpEmail.to = [{ email: email }];
-//     sendSmtpEmail.sender = {
-//       name: "Support Team",
-//       email: process.env.BREVO_SENDER_EMAIL,
-//     };
-//     sendSmtpEmail.htmlContent = `
-//       <div style="font-family: Arial, sans-serif; max-width: 400px; margin: auto;">
-//         <h2>Password Reset</h2>
-//         <p>Your OTP code is:</p>
-//         <h1 style="letter-spacing: 8px; color: #4F46E5;">${otp}</h1>
-//         <p>This code expires in <strong>10 minutes</strong>.</p>
-//         <p>If you did not request this, please ignore this email.</p>
-//       </div>
-//     `;
-
-//     await brevoClient.sendTransacEmail(sendSmtpEmail);
-
-//     return res.status(200).json({ message: "OTP sent to your email" });
-//   } catch (error) {
-//     console.error("❌ forgotPassword error:", error);
-//     return res.status(500).json({
-//       message: "Something went wrong, please try again",
-//     });
-//   }
-// };
-
 /**
  * Reset Password
  */
-
 export const resetPassword = async (req, res) => {
   try {
     const { email, otp, newPassword } = req.body;
@@ -364,7 +165,6 @@ export const resetPassword = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Check expiration
     if (
       !user.otp ||
       !user.otp_expires ||
@@ -373,13 +173,11 @@ export const resetPassword = async (req, res) => {
       return res.status(400).json({ message: "OTP expired or not set" });
     }
 
-    // Verify hashed OTP
     const isValid = verifyOTP(user.otp, otp);
     if (!isValid) {
       return res.status(400).json({ message: "Invalid OTP" });
     }
 
-    // Hash new password and update, clear OTP fields
     const hashedpassword = hashPassword(newPassword);
     await pool.query(passwordReset, [hashedpassword, email]);
 
