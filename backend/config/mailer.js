@@ -1,4 +1,6 @@
-import SibApiV3Sdk from "sib-api-v3-sdk";
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+const SibApiV3Sdk = require("sib-api-v3-sdk");
 
 const defaultClient = SibApiV3Sdk.ApiClient.instance;
 const apiKey = defaultClient.authentications["api-key"];

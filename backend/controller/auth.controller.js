@@ -112,12 +112,12 @@ export const forgotPassword = async (req, res) => {
 
     // ✅ Send email BEFORE persisting OTP
     try {
-      await brevo.sendTransacEmail({
-        sender: { name: "Support Team", email: process.env.BREVO_SENDER_EMAIL },
-        to: [{ email }],
-        subject: "Password Reset OTP",
-        textContent: `Your OTP is ${otp}. It expires in 10 minutes.`,
-        htmlContent: `
+  await brevo.sendTransacEmail({
+    sender: { name: "Support Team", email: process.env.BREVO_SENDER_EMAIL },
+    to: [{ email }],
+    subject: "Password Reset OTP",
+    textContent: `Your OTP is ${otp}. It expires in 10 minutes.`,
+    htmlContent: `
       <div style="font-family: Arial, sans-serif; max-width: 400px; margin: auto;">
         <h2>Password Reset</h2>
         <p>Your OTP code is:</p>
@@ -126,14 +126,13 @@ export const forgotPassword = async (req, res) => {
         <p>If you did not request this, please ignore this email.</p>
       </div>
     `,
-      });
-    } catch (mailError) {
-      console.error("❌ Brevo error:", mailError.message);
-      return res.status(503).json({
-        message:
-          "Email service temporarily unavailable. Please try again later.",
-      });
-    }
+  });
+} catch (mailError) {
+  console.error("❌ Brevo error:", mailError.message);
+  return res.status(503).json({
+    message: "Email service temporarily unavailable. Please try again later.",
+  });
+}
 
     // ✅ Only persist OTP after successful delivery
     await pool.query(forgetPassword, [hashedOtp, otpExpires, email]);
